@@ -18,6 +18,10 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     sick: 2,
     excused: 0,
     raw_message: '1А — 25 детей, 2 болеют',
+    absent_students: [
+      { name: 'Аслан Турсынов', reason: 'болезнь' },
+      { name: 'Айым Серикова', reason: 'болезнь' }
+    ],
     parsed_at: new Date(Date.now() - 1800000).toISOString(),
     status: 'parsed',
     confidence: 98,
@@ -36,6 +40,9 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     sick: 0,
     excused: 1,
     raw_message: '2Б сегодня 21, один отсутствует',
+    absent_students: [
+      { name: 'Дамир Нуров' }
+    ],
     parsed_at: new Date(Date.now() - 1500000).toISOString(),
     status: 'parsed',
     confidence: 95,
@@ -54,6 +61,10 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     sick: 1,
     excused: 1,
     raw_message: '3В: 24, двое на справке',
+    absent_students: [
+      { name: 'Ильяс Махмутов', reason: 'справка' },
+      { name: 'Алина Цой', reason: 'семейные обстоятельства' }
+    ],
     parsed_at: new Date(Date.now() - 1200000).toISOString(),
     status: 'parsed',
     confidence: 97,
@@ -72,6 +83,10 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     sick: 2,
     excused: 0,
     raw_message: '4А: 23 ученика, 2 болеют',
+    absent_students: [
+      { name: 'Тимур Сабитов', reason: 'болезнь' },
+      { name: 'Дильназ Рустемова', reason: 'болезнь' }
+    ],
     parsed_at: new Date(Date.now() - 900000).toISOString(),
     status: 'parsed',
     confidence: 99,
@@ -90,6 +105,10 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     sick: 1,
     excused: 1,
     raw_message: '1Б — 22 из 24',
+    absent_students: [
+      { name: 'Арман Беков' },
+      { name: 'Амина Жасуланова' }
+    ],
     parsed_at: new Date(Date.now() - 600000).toISOString(),
     status: 'parsed',
     confidence: 94,
@@ -126,6 +145,7 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     sick: 0,
     excused: 0,
     raw_message: '3А — все 25 присутствуют 🎉',
+    absent_students: [],
     parsed_at: new Date(Date.now() - 300000).toISOString(),
     status: 'parsed',
     confidence: 100,
@@ -144,6 +164,12 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     sick: 3,
     excused: 1,
     raw_message: '4Б — сегодня 20 детей, 4 нет',
+    absent_students: [
+      { name: 'Адиль Каимов', reason: 'болезнь' },
+      { name: 'Султан Сериков', reason: 'болезнь' },
+      { name: 'Мансур Алиев', reason: 'болезнь' },
+      { name: 'Аружан Адилова' }
+    ],
     parsed_at: new Date(Date.now() - 120000).toISOString(),
     status: 'parsed',
     confidence: 96,

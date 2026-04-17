@@ -18,9 +18,9 @@ import {
 const navigation = [
   { name: "Панель управления", href: "/", icon: LayoutDashboard },
   { name: "Посещаемость", href: "/attendance", icon: ClipboardCheck },
-  { name: "Задачи и инциденты", href: "/tasks", icon: AlertTriangle },
+  { name: "Инциденты", href: "/tasks", icon: AlertTriangle },
   { name: "Голосовые команды", href: "/voice", icon: Mic },
-  { name: "Расписание", href: "/schedule", icon: CalendarDays },
+  { name: "Расписание и замены", href: "/schedule", icon: CalendarDays },
   { name: "Сотрудники", href: "/staff", icon: Users },
   { name: "Приказы", href: "/regulations", icon: FileText },
 ]

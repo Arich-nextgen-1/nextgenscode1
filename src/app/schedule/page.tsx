@@ -1,127 +1,220 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { mockSubstitutionRequest, mockScheduleSlots } from "@/data"
-import { CalendarDays, AlertCircle, ArrowRight, UserCheck, Sparkles, CheckCircle2, Clock } from "lucide-react"
+import { getScheduleForDay, getSubstitutions } from "@/services/schedule"
+import type { LessonSlot, SubstitutionRequest } from "@/types"
+import { CalendarDays, AlertTriangle, ArrowRight, UserX, Clock, MapPin, CheckCircle2 } from "lucide-react"
 
 export default function SchedulePage() {
-  const req = mockSubstitutionRequest
-  
+  const [slots, setSlots] = useState<LessonSlot[]>([])
+  const [substitutions, setSubstitutions] = useState<SubstitutionRequest[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchScheduleData = async () => {
+      setLoading(true)
+      const daySlots = await getScheduleForDay('monday') // defaulting to monday for mock data demonstration
+      const subs = await getSubstitutions()
+      
+      // Sort slots by period
+      const sortedSlots = daySlots.sort((a, b) => a.period - b.period)
+      
+      setSlots(sortedSlots)
+      setSubstitutions(subs)
+      setLoading(false)
+    }
+    fetchScheduleData()
+  }, [])
+
+  // Aggregate absent teachers from substitutions
+  const absentTeachers = substitutions.reduce((acc, sub) => {
+    if (!acc.find(t => t.id === sub.absent_teacher_id)) {
+      acc.push({
+        id: sub.absent_teacher_id,
+        name: sub.absent_teacher_name,
+        reason: "Болезнь" // mock reason
+      })
+    }
+    return acc
+  }, [] as {id: string, name: string, reason: string}[])
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Расписание и замены</h1>
-          <p className="text-slate-500 mt-1">AI-рекомендации по замене учителей</p>
-        </div>
-        <Button className="bg-slate-900 text-white hover:bg-slate-800">
-          <CalendarDays className="mr-2 h-4 w-4" /> Показать все расписание
-        </Button>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Расписание и замены</h1>
+        <p className="text-sm text-slate-500 mt-1">Рабочий график на день</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left Col - Required Action */}
-        <div className="lg:col-span-1 space-y-6">
-          <h2 className="text-lg font-semibold flex items-center gap-2 text-red-600">
-            <AlertCircle className="h-5 w-5" /> Требуется действие сегодня
-          </h2>
-          
-          <Card className="border-red-200 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 w-full h-1 bg-red-500"></div>
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg text-slate-900">Отсутствующий учитель</CardTitle>
-                  <CardDescription className="text-red-600 font-medium mt-1">По болезни</CardDescription>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-700 font-bold">
-                  {req.absent_teacher_name.charAt(0)}
-                </div>
+      <div className="flex flex-col xl:flex-row gap-6">
+        
+        {/* Left Column: Schedule Table */}
+        <div className="flex-1 space-y-4">
+          <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+            <CardHeader className="p-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-base font-semibold text-slate-800 flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-slate-500" />
+                  Расписание уроков (Понедельник)
+                </CardTitle>
+                <Badge variant="outline" className="bg-white font-medium text-slate-600">Все классы</Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <h3 className="text-xl font-bold mb-4">{req.absent_teacher_name}</h3>
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Затронутые уроки сегодня</p>
-                {req.affected_slots.map(slot => (
-                  <div key={slot.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-md border border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="bg-white">{slot.period} урок</Badge>
-                      <span className="text-sm font-medium">{slot.subject}</span>
-                    </div>
-                    <span className="text-sm text-slate-500 font-medium">{slot.class_name}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Col - AI Recommendation */}
-        <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-lg font-semibold flex items-center gap-2 text-indigo-600">
-            <Sparkles className="h-5 w-5" /> Рекомендация AI
-          </h2>
-
-          <Card className="border-indigo-200 shadow-md relative overflow-hidden bg-gradient-to-br from-white to-indigo-50/30">
-            <div className="absolute top-0 right-0 p-6">
-              <Badge variant="success" className="bg-indigo-100 text-indigo-800 border-none px-3 py-1 text-sm">
-                {req.qualification_match}% Совпадение
-              </Badge>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
+                  <tr>
+                    <th className="px-4 py-3 text-center w-12 border-r border-slate-100">№</th>
+                    <th className="px-4 py-3">Время</th>
+                    <th className="px-4 py-3">Предмет</th>
+                    <th className="px-4 py-3">Класс</th>
+                    <th className="px-4 py-3">Кабинет</th>
+                    <th className="px-4 py-3">Преподаватель</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Загрузка расписания...</td>
+                    </tr>
+                  ) : slots.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Нет уроков в этот день</td>
+                    </tr>
+                  ) : (
+                    slots.map((slot) => {
+                      const isSubstituted = slot.status === 'substituted'
+                      
+                      return (
+                        <tr key={slot.id} className={`hover:bg-slate-50 transition-colors ${isSubstituted ? 'bg-amber-50/30' : ''}`}>
+                          <td className="px-4 py-3 text-center font-medium text-slate-500 border-r border-slate-100">{slot.period}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5 text-slate-600">
+                              <Clock className="h-3 w-3 text-slate-400" />
+                              {slot.start_time} - {slot.end_time}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-medium text-slate-900">{slot.subject}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-medium rounded px-2 hover:bg-slate-200 transition-colors shadow-sm">{slot.class_name}</Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5 text-slate-600">
+                              <MapPin className="h-3 w-3 text-slate-400" />
+                              {slot.room}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {isSubstituted ? (
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-amber-700">{slot.substitute_teacher_name}</span>
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 flex items-center gap-1 mt-0.5">
+                                  <ArrowRight className="h-2.5 w-2.5" /> Замена назначена
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-800">{slot.teacher_name}</span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-            <CardHeader>
-              <CardTitle className="text-xl">Предлагаемая замена</CardTitle>
-              <CardDescription>На основе квалификации и свободных уроков</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center gap-6">
-                <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-2xl border-4 border-white shadow-sm">
-                  {req.recommended_substitute_name?.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-slate-900">{req.recommended_substitute_name}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="bg-white text-slate-600 border-slate-200">Без категории</Badge>
-                    <span className="text-sm text-slate-500">Учитель</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-white rounded-lg border border-indigo-100 shadow-sm relative">
-                <div className="absolute -left-3 -top-3 h-6 w-6 rounded-full bg-indigo-500 flex items-center justify-center text-white">
-                  <Sparkles className="h-3 w-3" />
-                </div>
-                <p className="text-sm text-slate-700 leading-relaxed font-medium">
-                  "{req.ai_recommendation}"
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Квалификация</p>
-                  <p className="text-sm font-medium pl-5">Учитель начальных классов</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Доступность</p>
-                  <p className="text-sm font-medium pl-5">Свободны 3 и 4 уроки сегодня</p>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="bg-slate-50 border-t p-6">
-              {req.status === 'applied' ? (
-                <div className="w-full flex items-center justify-center p-3 bg-emerald-50 text-emerald-700 rounded-lg font-medium border border-emerald-200 gap-2">
-                  <CheckCircle2 className="h-5 w-5" /> Замена применена и расписание обновлено
-                </div>
-              ) : (
-                <Button className="w-full h-12 text-base bg-indigo-600 hover:bg-indigo-700 shadow-md">
-                  <UserCheck className="mr-2 h-5 w-5" /> Применить замену
-                </Button>
-              )}
-            </CardFooter>
           </Card>
         </div>
+
+        {/* Right Column: Subs & Absentees */}
+        <div className="w-full xl:w-[380px] shrink-0 space-y-6">
+          {/* Approved Substitutions */}
+          <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+            <CardHeader className="p-4 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                <ArrowRight className="h-4 w-4 text-slate-500" />
+                Утвержденные замены
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="p-6 text-center text-sm text-slate-500">Загрузка...</div>
+              ) : substitutions.length === 0 ? (
+                <div className="p-6 text-center text-sm text-slate-500">Нет утвержденных замен</div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {substitutions.map(sub => {
+                    const statusText = sub.status === 'applied' ? 'Подтверждено' : 'Ожидает';
+                    
+                    return (
+                      <div key={sub.id} className="p-4 hover:bg-slate-50 transition-colors">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-medium rounded px-1.5 shadow-sm">{sub.affected_slots[0]?.class_name || 'Н/Д'}</Badge>
+                            <span className="font-semibold text-slate-900 text-sm">{sub.affected_slots[0]?.subject || 'Предмет'}</span>
+                          </div>
+                          <Badge variant="outline" className={`font-semibold text-[9px] px-1.5 uppercase tracking-wider ${sub.status === 'applied' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm' : 'bg-amber-50 text-amber-700 border-amber-200 shadow-sm'}`}>
+                            {statusText}
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-2 bg-slate-50/50 rounded-md p-3 border border-slate-100 mb-3 shadow-sm">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-500 flex items-center gap-1.5"><UserX className="h-3 w-3 text-slate-400" /> Отсутствует:</span>
+                            <span className="font-medium text-slate-700 line-through decoration-slate-400">{sub.absent_teacher_name}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-500 flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-slate-400" /> Заменяет:</span>
+                            <span className="font-bold text-emerald-700">{sub.recommended_substitute_name}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                            Каб. {sub.affected_slots[0]?.room || 'Н/Д'}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-red-600/80">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Болезнь
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Absent Teachers Reference */}
+          <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+            <CardHeader className="p-4 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                <UserX className="h-4 w-4 text-slate-500" />
+                Справка: отсутствующие
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {loading ? (
+                <div className="text-center text-sm text-slate-500 py-4">Загрузка...</div>
+              ) : absentTeachers.length === 0 ? (
+                <div className="text-center text-sm text-slate-500 py-4">Все преподаватели на месте</div>
+              ) : (
+                <div className="space-y-3">
+                  {absentTeachers.map(teacher => (
+                    <div key={teacher.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-md border border-slate-100 shadow-sm">
+                      <span className="font-semibold text-slate-900 text-sm">{teacher.name}</span>
+                      <Badge variant="outline" className="bg-white text-slate-500 font-medium text-xs shadow-sm border-slate-200">{teacher.reason}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
       </div>
     </div>
   )

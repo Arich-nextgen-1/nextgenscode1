@@ -45,6 +45,7 @@ export interface AttendanceRecord {
   absent: number;
   sick: number;
   excused: number;
+  absent_students?: { name: string; reason?: string }[];
   raw_message: string;
   parsed_at: string;
   status: 'parsed' | 'pending' | 'error';
