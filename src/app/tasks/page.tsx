@@ -14,11 +14,11 @@ export default function TasksPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tasks & Incidents</h1>
-          <p className="text-slate-500 mt-1">AI-extracted tasks and issue tracking</p>
+          <h1 className="text-2xl font-bold tracking-tight">Задачи и инциденты</h1>
+          <p className="text-slate-500 mt-1">Извлеченные AI задачи и отслеживание проблем</p>
         </div>
         <Button className="bg-slate-900 text-white hover:bg-slate-800">
-          <Plus className="mr-2 h-4 w-4" /> New Task
+          <Plus className="mr-2 h-4 w-4" /> Новая задача
         </Button>
       </div>
 
@@ -29,7 +29,7 @@ export default function TasksPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span> New
+              <span className="w-2 h-2 rounded-full bg-blue-500"></span> Новые
             </h3>
             <Badge variant="outline" className="bg-white">{mockTasks.filter(t => t.status === 'new').length}</Badge>
           </div>
@@ -44,7 +44,7 @@ export default function TasksPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span> In Progress
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span> В работе
             </h3>
             <Badge variant="outline" className="bg-white">{mockTasks.filter(t => t.status === 'in_progress').length}</Badge>
           </div>
@@ -59,7 +59,7 @@ export default function TasksPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-500"></span> Waiting
+              <span className="w-2 h-2 rounded-full bg-purple-500"></span> В ожидании
             </h3>
             <Badge variant="outline" className="bg-white">{mockTasks.filter(t => t.status === 'waiting').length}</Badge>
           </div>
@@ -74,7 +74,7 @@ export default function TasksPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Done
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Завершено
             </h3>
             <Badge variant="outline" className="bg-white">{mockTasks.filter(t => t.status === 'done').length}</Badge>
           </div>
@@ -92,19 +92,19 @@ export default function TasksPage() {
 function TaskCard({ task }: { task: any }) {
   const getPriorityBadge = (priority: string) => {
     switch(priority) {
-      case 'critical': return <Badge variant="destructive" className="h-5 text-[10px] px-1.5">Critical</Badge>
-      case 'high': return <Badge variant="warning" className="bg-orange-100 text-orange-800 h-5 text-[10px] px-1.5 hover:bg-orange-200 border-none">High</Badge>
-      case 'medium': return <Badge variant="secondary" className="bg-blue-50 text-blue-700 h-5 text-[10px] px-1.5 hover:bg-blue-100 border-none">Medium</Badge>
-      case 'low': return <Badge variant="outline" className="h-5 text-[10px] px-1.5">Low</Badge>
+      case 'critical': return <Badge variant="destructive" className="h-5 text-[10px] px-1.5">Крит.</Badge>
+      case 'high': return <Badge variant="warning" className="bg-orange-100 text-orange-800 h-5 text-[10px] px-1.5 hover:bg-orange-200 border-none">Высок.</Badge>
+      case 'medium': return <Badge variant="secondary" className="bg-blue-50 text-blue-700 h-5 text-[10px] px-1.5 hover:bg-blue-100 border-none">Сред.</Badge>
+      case 'low': return <Badge variant="outline" className="h-5 text-[10px] px-1.5">Низк.</Badge>
       default: return null
     }
   }
 
   const getSourceIcon = (source: string) => {
     switch(source) {
-      case 'voice': return <span className="flex items-center gap-1 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-medium"><MessageSquare className="h-3 w-3" /> Voice AI</span>
-      case 'message': return <span className="flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium"><MessageSquare className="h-3 w-3" /> Chat AI</span>
-      case 'ai_generated': return <span className="flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded font-medium"><AlertTriangle className="h-3 w-3" /> System AI</span>
+      case 'voice': return <span className="flex items-center gap-1 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-medium"><MessageSquare className="h-3 w-3" /> AI Голос</span>
+      case 'message': return <span className="flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium"><MessageSquare className="h-3 w-3" /> AI Чат</span>
+      case 'ai_generated': return <span className="flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded font-medium"><AlertTriangle className="h-3 w-3" /> AI Системы</span>
       default: return null
     }
   }

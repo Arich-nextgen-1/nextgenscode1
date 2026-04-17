@@ -16,14 +16,13 @@ import {
 } from "lucide-react"
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Attendance", href: "/attendance", icon: ClipboardCheck },
-  { name: "Tasks & Incidents", href: "/tasks", icon: AlertTriangle },
-  { name: "Voice AI", href: "/voice", icon: Mic },
-  { name: "Schedule", href: "/schedule", icon: CalendarDays },
-  { name: "Staff", href: "/staff", icon: Users },
-  { name: "Regulations", href: "/regulations", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Панель управления", href: "/", icon: LayoutDashboard },
+  { name: "Посещаемость", href: "/attendance", icon: ClipboardCheck },
+  { name: "Задачи и инциденты", href: "/tasks", icon: AlertTriangle },
+  { name: "Голосовые команды", href: "/voice", icon: Mic },
+  { name: "Расписание", href: "/schedule", icon: CalendarDays },
+  { name: "Сотрудники", href: "/staff", icon: Users },
+  { name: "Приказы", href: "/regulations", icon: FileText },
 ]
 
 export function Sidebar() {
@@ -70,8 +69,8 @@ export function Sidebar() {
               AD
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-slate-900">Director</span>
-              <span className="text-xs text-slate-500">Aqbobek School</span>
+              <span className="text-sm font-medium text-slate-900">Директор</span>
+              <span className="text-xs text-slate-500">Школа Aqbobek</span>
             </div>
           </div>
         </div>

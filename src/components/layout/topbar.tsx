@@ -9,7 +9,7 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-x-4 border-b bg-white/50 backdrop-blur-md px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 subtle-shadow">
       <Button variant="ghost" size="icon" className="-m-2.5 p-2.5 text-slate-700 md:hidden">
-        <span className="sr-only">Open sidebar</span>
+        <span className="sr-only">Открыть меню</span>
         <Menu className="h-6 w-6" aria-hidden="true" />
       </Button>
 
@@ -19,7 +19,7 @@ export function Topbar() {
           <Input
             id="search-field"
             className="block h-9 w-full max-w-md pl-9 bg-slate-50 border-transparent focus-visible:bg-white transition-colors rounded-full"
-            placeholder="Search students, staff, or tasks..."
+            placeholder="Поиск учеников, сотрудников или задач..."
             type="search"
             name="search"
           />
@@ -32,12 +32,12 @@ export function Topbar() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              AI Active
+              AI Активен
             </div>
           </div>
           
           <Button variant="ghost" size="icon" className="-m-2.5 p-2.5 text-slate-400 hover:text-slate-500 relative">
-            <span className="sr-only">View notifications</span>
+            <span className="sr-only">Показать уведомления</span>
             <Bell className="h-5 w-5" aria-hidden="true" />
             {mockKPI.unread_notifications > 0 && (
               <span className="absolute top-2 right-2.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />

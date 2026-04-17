@@ -26,8 +26,8 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">System Integrations</h1>
-          <p className="text-slate-500 mt-1">Connect backend services and AI providers for production readiness</p>
+          <h1 className="text-2xl font-bold tracking-tight">Интеграции системы</h1>
+          <p className="text-slate-500 mt-1">Подключите backend-сервисы и провайдеров AI для запуска в production</p>
         </div>
       </div>
 
@@ -50,11 +50,11 @@ export default function SettingsPage() {
                 </div>
                 {integration.status === 'connected' ? (
                   <Badge variant="success" className="bg-emerald-50 text-emerald-700 border-none">
-                    <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Connected
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Подключено
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-slate-500 bg-slate-50 border-slate-200">
-                    Disconnected
+                    Отключено
                   </Badge>
                 )}
               </div>
@@ -64,7 +64,7 @@ export default function SettingsPage() {
                 {integration.type === 'supabase' && (
                   <>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-700">Project URL</label>
+                      <label className="text-xs font-medium text-slate-700">URL проекта</label>
                       <Input type="password" value="https://xxxxxx.supabase.co" readOnly className="bg-slate-50 font-mono text-xs" />
                     </div>
                     <div className="space-y-1">
@@ -75,32 +75,32 @@ export default function SettingsPage() {
                 )}
                 {integration.type === 'telegram' && (
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-700">Bot Token</label>
-                    <Input type="password" placeholder="Enter Telegram Bot Token" className="font-mono text-xs" />
+                    <label className="text-xs font-medium text-slate-700">Токен бота</label>
+                    <Input type="password" placeholder="Введите токен бота Telegram" className="font-mono text-xs" />
                   </div>
                 )}
                 {integration.type === 'openai' && (
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-700">API Key</label>
+                    <label className="text-xs font-medium text-slate-700">API Ключ</label>
                     <Input type="password" placeholder="sk-..." className="font-mono text-xs" />
                   </div>
                 )}
                 {integration.type === 'rag' && (
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-700">Vector Store</label>
+                    <label className="text-xs font-medium text-slate-700">Векторное хранилище</label>
                     <Input value="Supabase pgvector" readOnly className="bg-slate-50 text-sm" />
                   </div>
                 )}
                 {!['supabase', 'telegram', 'openai', 'rag'].includes(integration.type) && (
                   <div className="p-4 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center">
-                    <p className="text-sm text-slate-500 text-center">Setup required in environment variables</p>
+                    <p className="text-sm text-slate-500 text-center">Требуется настройка в переменных окружения</p>
                   </div>
                 )}
               </div>
             </CardContent>
             <CardFooter className="bg-slate-50 border-t pt-4 pb-4">
               <Button variant={integration.status === 'connected' ? 'outline' : 'default'} className="w-full">
-                {integration.status === 'connected' ? 'Configure' : 'Connect'}
+                {integration.status === 'connected' ? 'Настроить' : 'Подключить'}
               </Button>
             </CardFooter>
           </Card>
@@ -109,10 +109,10 @@ export default function SettingsPage() {
       
       <div className="mt-8 p-6 bg-amber-50 rounded-xl border border-amber-200">
         <h3 className="text-amber-800 font-bold flex items-center gap-2 mb-2">
-          <AlertCircle className="h-5 w-5" /> Mock Data Mode Active
+          <AlertCircle className="h-5 w-5" /> Включен режим фиктивных данных (Mock Data)
         </h3>
         <p className="text-sm text-amber-700 max-w-3xl">
-          The application is currently running in demonstration mode using mock data. To connect to the real database and AI services, configure the credentials above and update the API endpoints in the <code>src/services</code> directory.
+          Приложение в настоящее время работает в демонстрационном режиме с использованием фиктивных данных. Чтобы подключиться к реальной базе данных и сервисам AI, настройте учетные данные выше и обновите конечные точки API в каталоге <code>src/services</code>.
         </p>
       </div>
     </div>

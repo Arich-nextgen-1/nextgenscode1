@@ -7,8 +7,8 @@ import { Topbar } from "@/components/layout/topbar";
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
-  title: "AI Zavuch | Aqbobek School",
-  description: "AI-powered school management dashboard for school principals.",
+  title: "AI-Завуч | Школа Aqbobek",
+  description: "AI-дашборд управления школой для директоров.",
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-slate-50">
+    <html lang="ru" className="bg-slate-50">
       <body className={`${inter.className} h-full text-slate-900`}>
         <div className="flex h-screen overflow-hidden">
           <Sidebar />

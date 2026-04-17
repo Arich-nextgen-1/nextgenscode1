@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { mockVoiceTranscription } from "@/data"
-import { Mic, Square, Play, CheckCircle2, AlertTriangle, ArrowRight, Save, Loader2, Sparkles, Wand2 } from "lucide-react"
+import { Mic, Square, Play, CheckCircle2, Loader2, Calendar } from "lucide-react"
 
 export default function VoicePage() {
   const [isRecording, setIsRecording] = useState(false)
@@ -27,60 +27,67 @@ export default function VoicePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="text-center py-6">
-        <h1 className="text-3xl font-bold tracking-tight">Voice to Task AI</h1>
-        <p className="text-slate-500 mt-2 max-w-2xl mx-auto">
-          Just speak your orders. The AI will automatically transcribe your voice, extract multiple tasks, assign them to the right staff, and set deadlines.
-        </p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Голосовые команды</h1>
+          <p className="text-slate-500 mt-1">Создание задач через голосовой ввод</p>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <div className="space-y-6">
-          <Card className={`border-2 transition-all duration-500 ${isRecording ? 'border-red-400 shadow-[0_0_30px_rgba(248,113,113,0.3)]' : isProcessing ? 'border-indigo-400' : 'border-emerald-200'}`}>
-            <CardContent className="p-8 flex flex-col items-center justify-center min-h-[300px] text-center">
-              <button 
-                onClick={handleRecordClick}
-                className={`relative flex items-center justify-center w-24 h-24 rounded-full transition-all duration-300 shadow-xl ${
-                  isRecording ? 'bg-red-500 hover:bg-red-600 scale-110' : 'bg-emerald-600 hover:bg-emerald-700'
-                }`}
-              >
-                {isRecording ? (
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Left Column: Input and Transcription */}
+        <div className="lg:col-span-1 space-y-6">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-4 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base flex items-center gap-2 text-slate-800">
+                <Mic className="h-4 w-4 text-slate-500" />
+                Ввод команды
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                {!isRecording && !isProcessing && (
                   <>
-                    <span className="absolute w-full h-full rounded-full border-4 border-red-500 opacity-20 animate-ping"></span>
-                    <Square className="h-8 w-8 text-white fill-current" />
-                  </>
-                ) : (
-                  <Mic className="h-10 w-10 text-white" />
-                )}
-              </button>
-              
-              <div className="mt-8 space-y-2 h-16">
-                {isRecording ? (
-                  <>
-                    <h3 className="text-xl font-bold text-red-500">Recording...</h3>
-                    <p className="text-slate-500 flex items-center justify-center gap-2">
-                      <span className="flex gap-1 h-3 items-center">
-                        <span className="w-1 h-2 bg-red-400 rounded-full animate-bounce"></span>
-                        <span className="w-1 h-3 bg-red-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
-                        <span className="w-1 h-4 bg-red-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-                        <span className="w-1 h-2 bg-red-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
-                        <span className="w-1 h-3 bg-red-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
-                      </span>
-                      Speak your command
+                    <Button 
+                      onClick={handleRecordClick} 
+                      size="lg" 
+                      className="bg-slate-900 text-white hover:bg-slate-800 rounded-full h-14 w-14 p-0 shadow-sm transition-transform hover:scale-105"
+                    >
+                      <Mic className="h-6 w-6" />
+                    </Button>
+                    <p className="text-sm font-medium text-slate-700 mt-4">Нажмите для записи</p>
+                    <p className="text-xs text-slate-500 mt-1 text-center max-w-xs">
+                      Пример: "Подготовьте актовый зал к завтрашнему мероприятию"
                     </p>
                   </>
-                ) : isProcessing ? (
+                )}
+                
+                {isRecording && (
                   <>
-                    <h3 className="text-xl font-bold text-indigo-600 flex items-center justify-center gap-2">
-                      <Loader2 className="h-5 w-5 animate-spin" /> Processing AI
-                    </h3>
-                    <p className="text-slate-500">Transcribing and extracting tasks...</p>
+                    <Button 
+                      onClick={handleRecordClick} 
+                      size="lg" 
+                      variant="destructive"
+                      className="rounded-full h-14 w-14 p-0 shadow-sm animate-pulse"
+                    >
+                      <Square className="h-5 w-5 fill-current" />
+                    </Button>
+                    <p className="text-sm font-medium text-red-600 mt-4 flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-red-600 animate-pulse"></span>
+                      Идет запись...
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">Говорите четко</p>
                   </>
-                ) : (
+                )}
+                
+                {isProcessing && (
                   <>
-                    <h3 className="text-xl font-bold text-slate-900">Tap to speak</h3>
-                    <p className="text-slate-500">Example: "Айгерим, подготовь зал..."</p>
+                    <div className="h-14 w-14 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 text-slate-500 animate-spin" />
+                    </div>
+                    <p className="text-sm font-medium text-slate-700 mt-4">Обработка...</p>
+                    <p className="text-xs text-slate-500 mt-1">Распознавание речи и извлечение задач</p>
                   </>
                 )}
               </div>
@@ -88,89 +95,94 @@ export default function VoicePage() {
           </Card>
 
           {showResult && (
-            <Card className="bg-slate-50 border-slate-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                  <FileTextIcon className="h-4 w-4" /> Original Transcription
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+                <CardTitle className="text-sm font-medium text-slate-800 flex items-center gap-2">
+                  <FileTextIcon className="h-4 w-4 text-slate-500" /> 
+                  Распознанный текст
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-lg text-slate-800 leading-relaxed font-medium">
+              <CardContent className="pt-4">
+                <p className="text-sm text-slate-700 leading-relaxed bg-white">
                   "{mockVoiceTranscription.transcript}"
                 </p>
-                <div className="mt-4 flex items-center gap-4 text-xs text-slate-500 font-medium">
-                  <span className="flex items-center gap-1"><Play className="h-3 w-3" /> {mockVoiceTranscription.duration_seconds} sec</span>
-                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> Whisper AI Confirmed</span>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span className="flex items-center gap-1.5"><Play className="h-3 w-3" /> {mockVoiceTranscription.duration_seconds} сек</span>
+                  <span className="flex items-center gap-1.5 text-slate-600"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> Проверено AI</span>
                 </div>
               </CardContent>
             </Card>
           )}
         </div>
 
-        <div className="space-y-6">
-          {showResult ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Wand2 className="h-5 w-5 text-indigo-500" /> Extracted Tasks
-                </h2>
-                <Badge variant="success" className="bg-indigo-100 text-indigo-800 border-none px-2 py-0.5">
-                  2 Tasks Found
-                </Badge>
+        {/* Right Column: Generated Tasks */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="border-slate-200 shadow-sm h-full flex flex-col">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2 text-slate-800">
+                  <CheckCircle2 className="h-4 w-4 text-slate-500" />
+                  Результат: Созданные задачи
+                </CardTitle>
+                {showResult && (
+                  <Badge variant="outline" className="bg-white text-slate-600 font-medium">
+                    Найдено: {mockVoiceTranscription.parsed_tasks.length}
+                  </Badge>
+                )}
               </div>
-
-              {mockVoiceTranscription.parsed_tasks.map((task, idx) => (
-                <Card key={idx} className="relative overflow-hidden border-l-4 border-l-emerald-500">
-                  <div className="absolute top-0 right-0 p-4">
-                    <Badge variant="success" className="bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      {task.confidence}% Match
-                    </Badge>
+            </CardHeader>
+            <CardContent className="pt-6 flex-1 bg-slate-50/30">
+              {showResult ? (
+                <div className="space-y-4">
+                  {mockVoiceTranscription.parsed_tasks.map((task, idx) => (
+                    <div key={idx} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 hover:border-slate-300 transition-colors">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium text-slate-900 text-sm">{task.title}</h4>
+                          <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none px-1.5 text-[10px]">
+                            {task.priority === 'critical' ? 'Крит.' : task.priority === 'high' ? 'Высок.' : task.priority === 'medium' ? 'Сред.' : 'Низк.'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-slate-600">{task.description}</p>
+                        
+                        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] font-medium">
+                              {task.assignee_name?.charAt(0)}
+                            </div>
+                            <span className="text-xs text-slate-700 font-medium">{task.assignee_name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {task.deadline ? new Date(task.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : 'Без срока'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <div className="pt-4 flex justify-end gap-3 border-t border-slate-200 mt-6">
+                    <Button variant="outline" className="bg-white text-slate-700 border-slate-200">
+                      Отменить
+                    </Button>
+                    <Button className="bg-slate-900 text-white hover:bg-slate-800">
+                      Сохранить задачи
+                    </Button>
                   </div>
-                  <CardHeader className="pb-2">
-                    <div className="pr-20">
-                      <CardTitle className="text-lg">{task.title}</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-slate-600">{task.description}</p>
-                    
-                    <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Assignee</p>
-                        <p className="text-sm font-medium flex items-center gap-1.5">
-                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">
-                            {task.assignee_name?.charAt(0)}
-                          </span>
-                          {task.assignee_name}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Deadline</p>
-                        <p className="text-sm font-medium">{task.deadline ? new Date(task.deadline).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' }) : 'ASAP'}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              <div className="pt-4 flex gap-3">
-                <Button className="flex-1 bg-indigo-600 hover:bg-indigo-700">
-                  <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm & Assign All
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  Edit Details
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-              <Sparkles className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-lg font-medium text-slate-500">Waiting for voice input</h3>
-              <p className="text-sm text-slate-400 mt-2 max-w-xs">
-                The AI will break down your voice command into actionable tasks here.
-              </p>
-            </div>
-          )}
+                </div>
+              ) : (
+                <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center">
+                  <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                    <FileTextIcon className="h-6 w-6 text-slate-300" />
+                  </div>
+                  <p className="text-sm font-medium text-slate-600">Ожидание ввода</p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-xs">
+                    Задачи появятся здесь после завершения распознавания голосовой команды.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
@@ -191,7 +203,7 @@ function FileTextIcon(props: any) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2-2V7.5L14.5 2z" />
       <polyline points="14 2 14 8 20 8" />
       <line x1="16" x2="8" y1="13" y2="13" />
       <line x1="16" x2="8" y1="17" y2="17" />
