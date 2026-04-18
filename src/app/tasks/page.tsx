@@ -11,6 +11,7 @@ import {
   Search, Filter, AlertTriangle, MapPin, Clock, User, FileText,
   MessageCircle, CheckCircle2, PlusCircle, RefreshCw
 } from "lucide-react"
+import { FormattedDate } from "@/components/ui/formatted-date"
 
 export default function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([])
@@ -156,7 +157,7 @@ export default function IncidentsPage() {
                       <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mt-1 pt-3 border-t border-slate-100">
                         <div className="flex items-center gap-1.5">
                           <Clock className="h-3.5 w-3.5" />
-                          {new Date(incident.detected_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                          <FormattedDate date={incident.detected_at} type="time" />
                         </div>
                         {incident.room && (
                           <div className="flex items-center gap-1.5">
@@ -204,7 +205,7 @@ export default function IncidentsPage() {
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 leading-tight">{selectedIncident.title}</h3>
                     <p className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5" /> Зафиксировано: {new Date(selectedIncident.detected_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      <Clock className="h-3.5 w-3.5" /> Зафиксировано: <FormattedDate date={selectedIncident.detected_at} />
                     </p>
                   </div>
                   <div className="flex flex-col gap-2 shrink-0 items-end">
@@ -253,9 +254,11 @@ export default function IncidentsPage() {
                           <span className="text-xs text-slate-600 font-medium">{selectedIncident.source_sender}</span>
                         )}
                         {selectedIncident.source_time && (
-                          <span className="text-xs text-slate-400 ml-auto">
-                            {new Date(selectedIncident.source_time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          <FormattedDate 
+                            date={selectedIncident.source_time} 
+                            type="time" 
+                            className="text-xs text-slate-400 ml-auto" 
+                          />
                         )}
                       </div>
                       <div className="text-xs text-slate-600 bg-white p-2.5 rounded border border-slate-100 border-l-2 border-l-blue-300 italic">

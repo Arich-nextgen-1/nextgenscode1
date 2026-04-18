@@ -1,59 +1,160 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { mockKPI, mockAIEvents, mockAttendanceChart, mockTasks, mockNotifications } from "@/data"
-import { mockTelegramMessages } from "@/data/attendance"
-import { Users, UserMinus, AlertTriangle, CheckCircle2, CalendarOff, Sparkles, ArrowRight, BrainCircuit, ClipboardCheck, Mic, FileText, Send, Clock, MessageCircle, RefreshCw } from "lucide-react"
+import { mockAttendanceChart } from "@/data"
+import {
+  Users, UserMinus, AlertTriangle, CheckCircle2, CalendarOff,
+  Sparkles, BrainCircuit, ClipboardCheck, Mic, FileText, Send,
+  Clock, MessageCircle, RefreshCw, Zap, ArrowRight, Loader2
+} from "lucide-react"
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import { formatTime, timeAgo } from "@/lib/utils"
-import type { DashboardAIAction } from "@/types"
+import { FormattedDate } from "@/components/ui/formatted-date"
 
-// ── Mock service data ────────────────────────────────────────────
-// TODO: connect backend here — replace with GET /api/dashboard/ai-actions
-const mockAIActions: DashboardAIAction[] = [
-  { id: 'da1', icon: '📊', label: 'Сформирован отчёт по посещаемости', detail: '7 из 8 классов обработано', time: '09:05', status: 'done' },
-  { id: 'da2', icon: '✅', label: 'Создано 3 задачи по инцидентам', detail: 'Назначены ответственные, установлены дедлайны', time: '08:52', status: 'done' },
-  { id: 'da3', icon: '🔁', label: 'Назначена замена: Данияр Бекович', detail: 'Вместо Ботагоз Дауреновой (3-4 урок)', time: '08:40', status: 'done' },
-  { id: 'da4', icon: '💬', label: 'Обработано 8 сообщений из Telegram', detail: '6 отчётов о посещаемости, 2 инцидента', time: '08:30', status: 'done' },
-  { id: 'da5', icon: '📋', label: 'Отчёт для столовой готов к отправке', detail: '160 порций на сегодня', time: '08:10', status: 'done' },
-]
-// ────────────────────────────────────────────────────────────────
+// ── Типы ────────────────────────────────────────────────────
 
-const eventTypeMap: Record<string, string> = {
-  attendance_parsed: 'Посещаемость обработана',
-  substitution_suggested: 'Предложена замена',
-  task_created: 'Создана задача',
-  voice_parsed: 'Голос обработан',
+interface DashboardStats {
+  messages_total: number
+  messages_processed: number
+  messages_unprocessed: number
+  attendance_today: number
+  incidents_active: number
+  tasks_active: number
+  absences_today: number
+  total_students: number
+  present_today: number
+  absent_today: number
+  attendance_rate: number
 }
 
-const priorityMap: Record<string, string> = {
-  critical: 'Критический',
-  high: 'Высокий',
-  medium: 'Средний',
-  low: 'Низкий',
+interface RecentActivity {
+  id: string
+  sender_name: string
+  message_text: string
+  parsed_type: string
+  confidence: number
+  processed_at: string
+  linked_entity_type: string
 }
+
+interface TelegramMsg {
+  id: string
+  from_name: string
+  message: string
+  sent_at: string
+  type: string
+  processed: boolean
+  confidence: number
+  processing_status: string
+  linked_entity_type?: string
+}
+
+interface ProcessingResult {
+  ok: boolean
+  total_messages: number
+  processed: number
+  stats: {
+    attendance: number
+    incidents: number
+    tasks: number
+    teacher_absences: number
+    unknown: number
+    errors: number
+  }
+}
+
+// ── Badge maps ──────────────────────────────────────────────
 
 const telegramTypeBadge: Record<string, { label: string; className: string }> = {
   attendance: { label: 'Посещаемость', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   incident: { label: 'Инцидент', className: 'bg-red-50 text-red-700 border-red-200' },
+  teacher_absence: { label: 'Отсутствие', className: 'bg-purple-50 text-purple-700 border-purple-200' },
+  task_request: { label: 'Задача', className: 'bg-blue-50 text-blue-700 border-blue-200' },
   request: { label: 'Запрос', className: 'bg-blue-50 text-blue-700 border-blue-200' },
   general: { label: 'Общее', className: 'bg-slate-100 text-slate-600 border-slate-200' },
+  unknown: { label: 'Не определено', className: 'bg-amber-50 text-amber-600 border-amber-200' },
+  classified: { label: 'Классифицировано', className: 'bg-sky-50 text-sky-700 border-sky-200' },
 }
 
-export default function DashboardPage() {
-  const urgentTasks = mockTasks.filter(t => t.priority === 'critical' || t.priority === 'high').slice(0, 3)
-  const telegramFeed = mockTelegramMessages.slice(0, 5)
+const activityIcon: Record<string, string> = {
+  attendance: '📊',
+  incident: '🚨',
+  teacher_absence: '🏥',
+  task_request: '📋',
+  task: '📋',
+  unknown: '💬',
+}
 
+// ── Компонент ───────────────────────────────────────────────
+
+export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [activity, setActivity] = useState<RecentActivity[]>([])
+  const [telegramFeed, setTelegramFeed] = useState<TelegramMsg[]>([])
+  const [loading, setLoading] = useState(true)
+  const [processingState, setProcessingState] = useState<'idle' | 'loading' | 'done'>('idle')
+  const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null)
+
+  // Загрузка данных
+  const fetchData = useCallback(async () => {
+    try {
+      const [statsRes, messagesRes] = await Promise.all([
+        fetch('/api/dashboard/stats'),
+        fetch('/api/telegram/messages?limit=8'),
+      ])
+
+      const statsData = await statsRes.json()
+      const messagesData = await messagesRes.json()
+
+      if (statsData.ok) {
+        setStats(statsData.stats)
+        setActivity(statsData.recent_activity || [])
+      }
+      if (messagesData.ok) {
+        setTelegramFeed(messagesData.messages || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+    // Auto-refresh every 15 seconds
+    const interval = setInterval(fetchData, 15000)
+    return () => clearInterval(interval)
+  }, [fetchData])
+
+  // Обработка сообщений
+  const handleProcessMessages = async () => {
+    setProcessingState('loading')
+    setProcessingResult(null)
+    try {
+      const res = await fetch('/api/process-messages', { method: 'POST' })
+      const data = await res.json()
+      setProcessingResult(data)
+      setProcessingState('done')
+      // Перезагружаем данные
+      await fetchData()
+      // Сбрасываем через 8 секунд
+      setTimeout(() => {
+        setProcessingState('idle')
+        setProcessingResult(null)
+      }, 8000)
+    } catch (err) {
+      console.error('Processing error:', err)
+      setProcessingState('idle')
+    }
+  }
+
+  // Quick actions (mock for others, real for process)
   const [reportState, setReportState] = useState<'idle' | 'loading' | 'done'>('idle')
   const [substitutionState, setSubstitutionState] = useState<'idle' | 'loading' | 'done'>('idle')
-  const [tasksState, setTasksState] = useState<'idle' | 'loading' | 'done'>('idle')
-
-  const handleQuickAction = async (
-    set: React.Dispatch<React.SetStateAction<'idle' | 'loading' | 'done'>>
-  ) => {
+  const handleQuickAction = async (set: React.Dispatch<React.SetStateAction<'idle' | 'loading' | 'done'>>) => {
     set('loading')
     await new Promise(r => setTimeout(r, 1400))
     set('done')
@@ -73,11 +174,16 @@ export default function DashboardPage() {
             <Sparkles className="w-3.5 h-3.5 mr-1.5" />
             AI Аналитика Активна
           </Badge>
-          <span className="text-sm text-slate-500">{new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <FormattedDate 
+              date={new Date()} 
+              type="date" 
+              options={{ weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }} 
+              className="text-sm text-slate-500" 
+            />
         </div>
       </div>
 
-      {/* KPI Stats */}
+      {/* KPI Stats — Real Data */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="hover:border-emerald-200 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -85,12 +191,15 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockKPI.present_today} <span className="text-sm font-normal text-slate-500">/ {mockKPI.total_students}</span></div>
+            <div className="text-2xl font-bold">
+              {loading ? '...' : stats?.present_today || 0}{' '}
+              <span className="text-sm font-normal text-slate-500">/ {stats?.total_students || 0}</span>
+            </div>
             <p className="text-xs text-slate-500 mt-1">
-              <span className="text-emerald-600 font-medium">+{mockKPI.attendance_rate}%</span> посещаемость
+              <span className="text-emerald-600 font-medium">{stats?.attendance_rate || 0}%</span> посещаемость
             </p>
             <div className="mt-3 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500" style={{ width: `${mockKPI.attendance_rate}%` }}></div>
+              <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${stats?.attendance_rate || 0}%` }}></div>
             </div>
           </CardContent>
         </Card>
@@ -101,9 +210,9 @@ export default function DashboardPage() {
             <UserMinus className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockKPI.absent_today}</div>
+            <div className="text-2xl font-bold">{loading ? '...' : stats?.absent_today || 0}</div>
             <p className="text-xs text-slate-500 mt-1">
-              3 по болезни, 8 без причины
+              по данным из Telegram
             </p>
           </CardContent>
         </Card>
@@ -114,7 +223,7 @@ export default function DashboardPage() {
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{mockKPI.active_incidents}</div>
+            <div className="text-2xl font-bold text-red-600">{loading ? '...' : stats?.incidents_active || 0}</div>
             <p className="text-xs text-slate-500 mt-1">
               Требует внимания
             </p>
@@ -123,52 +232,102 @@ export default function DashboardPage() {
 
         <Card className="hover:border-blue-200 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Замены</CardTitle>
-            <CalendarOff className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Активные задачи</CardTitle>
+            <ClipboardCheck className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockKPI.substitutions_today}</div>
+            <div className="text-2xl font-bold">{loading ? '...' : stats?.tasks_active || 0}</div>
             <p className="text-xs text-slate-500 mt-1">
-              <span className="text-emerald-600 font-medium">100%</span> решено с помощью AI
+              В работе и новые
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions Panel */}
+      {/* Quick Actions Panel — with REAL process button */}
       <Card className="border-slate-200 bg-slate-50/50">
-        <CardContent className="p-4 flex flex-wrap gap-3 items-center">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1 shrink-0">Быстрые действия:</span>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={reportState !== 'idle'}
-            onClick={() => handleQuickAction(setReportState)}
-            className="h-8 border-slate-200 bg-white text-slate-700 hover:border-slate-300 text-xs"
-          >
-            {reportState === 'loading' ? <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> : reportState === 'done' ? <CheckCircle2 className="h-3 w-3 mr-1.5 text-emerald-600" /> : <FileText className="h-3 w-3 mr-1.5" />}
-            {reportState === 'done' ? 'Отчёт сформирован' : 'Сформировать отчёт'}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={substitutionState !== 'idle'}
-            onClick={() => handleQuickAction(setSubstitutionState)}
-            className="h-8 border-slate-200 bg-white text-slate-700 hover:border-slate-300 text-xs"
-          >
-            {substitutionState === 'loading' ? <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> : substitutionState === 'done' ? <CheckCircle2 className="h-3 w-3 mr-1.5 text-emerald-600" /> : <CalendarOff className="h-3 w-3 mr-1.5" />}
-            {substitutionState === 'done' ? 'Замены проверены' : 'Проверить замены'}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={tasksState !== 'idle'}
-            onClick={() => handleQuickAction(setTasksState)}
-            className="h-8 border-slate-200 bg-white text-slate-700 hover:border-slate-300 text-xs"
-          >
-            {tasksState === 'loading' ? <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> : tasksState === 'done' ? <CheckCircle2 className="h-3 w-3 mr-1.5 text-emerald-600" /> : <ClipboardCheck className="h-3 w-3 mr-1.5" />}
-            {tasksState === 'done' ? 'Задачи созданы' : 'Создать задачи'}
-          </Button>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap gap-3 items-center">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1 shrink-0">Быстрые действия:</span>
+            
+            {/* ★ MAIN ACTION: Process Telegram Messages */}
+            <Button
+              size="sm"
+              onClick={handleProcessMessages}
+              disabled={processingState !== 'idle'}
+              className={`h-8 text-xs font-semibold shadow-sm transition-all ${
+                processingState === 'done'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  : 'bg-slate-900 text-white hover:bg-slate-800'
+              }`}
+            >
+              {processingState === 'loading' ? (
+                <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+              ) : processingState === 'done' ? (
+                <CheckCircle2 className="h-3 w-3 mr-1.5" />
+              ) : (
+                <Zap className="h-3 w-3 mr-1.5" />
+              )}
+              {processingState === 'done'
+                ? `Обработано ${processingResult?.processed || 0} сообщений`
+                : processingState === 'loading'
+                ? 'Обработка...'
+                : `Обработать сообщения${stats?.messages_unprocessed ? ` (${stats.messages_unprocessed})` : ''}`}
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={reportState !== 'idle'}
+              onClick={() => handleQuickAction(setReportState)}
+              className="h-8 border-slate-200 bg-white text-slate-700 hover:border-slate-300 text-xs"
+            >
+              {reportState === 'loading' ? <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> : reportState === 'done' ? <CheckCircle2 className="h-3 w-3 mr-1.5 text-emerald-600" /> : <FileText className="h-3 w-3 mr-1.5" />}
+              {reportState === 'done' ? 'Отчёт сформирован' : 'Сформировать отчёт'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={substitutionState !== 'idle'}
+              onClick={() => handleQuickAction(setSubstitutionState)}
+              className="h-8 border-slate-200 bg-white text-slate-700 hover:border-slate-300 text-xs"
+            >
+              {substitutionState === 'loading' ? <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> : substitutionState === 'done' ? <CheckCircle2 className="h-3 w-3 mr-1.5 text-emerald-600" /> : <CalendarOff className="h-3 w-3 mr-1.5" />}
+              {substitutionState === 'done' ? 'Замены проверены' : 'Проверить замены'}
+            </Button>
+          </div>
+
+          {/* Processing result banner */}
+          {processingResult && processingState === 'done' && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex flex-wrap items-center gap-3 text-xs animate-in fade-in">
+              <span className="font-semibold text-emerald-800">✅ Результат обработки:</span>
+              {processingResult.stats.attendance > 0 && (
+                <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200">
+                  📊 Посещаемость: {processingResult.stats.attendance}
+                </Badge>
+              )}
+              {processingResult.stats.incidents > 0 && (
+                <Badge variant="outline" className="bg-white text-red-700 border-red-200">
+                  🚨 Инциденты: {processingResult.stats.incidents}
+                </Badge>
+              )}
+              {processingResult.stats.tasks > 0 && (
+                <Badge variant="outline" className="bg-white text-blue-700 border-blue-200">
+                  📋 Задачи: {processingResult.stats.tasks}
+                </Badge>
+              )}
+              {processingResult.stats.teacher_absences > 0 && (
+                <Badge variant="outline" className="bg-white text-purple-700 border-purple-200">
+                  🏥 Отсутствия: {processingResult.stats.teacher_absences}
+                </Badge>
+              )}
+              {processingResult.stats.unknown > 0 && (
+                <Badge variant="outline" className="bg-white text-slate-600 border-slate-200">
+                  💬 Неопределённые: {processingResult.stats.unknown}
+                </Badge>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -204,83 +363,79 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Urgent Actions */}
+        {/* Messages Stats */}
         <Card className="md:col-span-3 flex flex-col">
           <CardHeader className="pb-3 border-b">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Срочные действия</CardTitle>
-              <Badge variant="destructive" className="px-1.5 py-0">Требуется действие</Badge>
+              <CardTitle className="text-base">Статистика сообщений</CardTitle>
+              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 font-normal text-[10px]">
+                Telegram Bot
+              </Badge>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto p-0">
-            <div className="divide-y">
-              {urgentTasks.map((task) => (
-                <div key={task.id} className="p-4 hover:bg-slate-50 transition-colors">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">{task.title}</p>
-                      <p className="text-xs text-slate-500 line-clamp-2">{task.description}</p>
-                    </div>
-                    <Badge variant={task.priority === 'critical' ? 'destructive' : 'warning'}>
-                      {priorityMap[task.priority] || task.priority}
-                    </Badge>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                    <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {task.assignee_name}</span>
-                    <Button variant="ghost" size="sm" className="h-7 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
-                      Показать <ArrowRight className="ml-1 h-3 w-3" />
-                    </Button>
+          <CardContent className="flex-1 p-5 space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-3 bg-slate-50 rounded-lg">
+                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">Всего</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{stats?.messages_total || 0}</p>
+              </div>
+              <div className="text-center p-3 bg-emerald-50 rounded-lg">
+                <p className="text-[10px] uppercase tracking-wider text-emerald-600 font-medium">Обработано</p>
+                <p className="text-2xl font-bold text-emerald-700 mt-1">{stats?.messages_processed || 0}</p>
+              </div>
+              <div className="text-center p-3 bg-amber-50 rounded-lg">
+                <p className="text-[10px] uppercase tracking-wider text-amber-600 font-medium">Ожидают</p>
+                <p className="text-2xl font-bold text-amber-700 mt-1">{stats?.messages_unprocessed || 0}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Создано из сообщений сегодня</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-md">
+                  <span className="text-base">📊</span>
+                  <div>
+                    <p className="text-xs text-slate-500">Посещаемость</p>
+                    <p className="text-sm font-bold text-slate-900">{stats?.attendance_today || 0}</p>
                   </div>
                 </div>
-              ))}
+                <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-md">
+                  <span className="text-base">🚨</span>
+                  <div>
+                    <p className="text-xs text-slate-500">Инциденты</p>
+                    <p className="text-sm font-bold text-slate-900">{stats?.incidents_active || 0}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-md">
+                  <span className="text-base">📋</span>
+                  <div>
+                    <p className="text-xs text-slate-500">Задачи</p>
+                    <p className="text-sm font-bold text-slate-900">{stats?.tasks_active || 0}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-md">
+                  <span className="text-base">🏥</span>
+                  <div>
+                    <p className="text-xs text-slate-500">Отсутствия</p>
+                    <p className="text-sm font-bold text-slate-900">{stats?.absences_today || 0}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Bottom row: AI Actions + Telegram Feed + AI Events */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Bottom row: Telegram Feed + AI Activity */}
+      <div className="grid gap-6 lg:grid-cols-2">
 
-        {/* What AI Did Today */}
-        <Card className="lg:col-span-1">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                <BrainCircuit className="h-4 w-4 text-slate-500" />
-                Что AI сделал сегодня
-              </CardTitle>
-              <Badge variant="outline" className="bg-white text-slate-500 font-normal text-[10px]">
-                {mockAIActions.length} операций
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-slate-100">
-              {mockAIActions.map(item => (
-                <div key={item.id} className="px-4 py-3 flex items-start gap-3 hover:bg-slate-50/60 transition-colors">
-                  <span className="text-base leading-none shrink-0 mt-0.5">{item.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-800 font-medium leading-snug">{item.label}</p>
-                    {item.detail && (
-                      <p className="text-xs text-slate-500 mt-0.5 leading-snug">{item.detail}</p>
-                    )}
-                  </div>
-                  <span className="text-[11px] text-slate-400 font-medium shrink-0 mt-0.5 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />{item.time}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Telegram Feed */}
+        {/* Telegram Feed — Real Data */}
         <Card className="lg:col-span-1">
           <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                 <MessageCircle className="h-4 w-4 text-blue-500" />
-                Новые сообщения Telegram
+                Последние сообщения Telegram
               </CardTitle>
               <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 font-normal text-[10px]">
                 {telegramFeed.filter(m => m.processed).length}/{telegramFeed.length} обработано
@@ -288,81 +443,104 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-slate-100">
-              {telegramFeed.map(msg => {
-                const badge = telegramTypeBadge[msg.type] || telegramTypeBadge.general
-                return (
-                  <div key={msg.id} className="px-4 py-3 hover:bg-slate-50/60 transition-colors">
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-semibold text-slate-900 truncate">{msg.from_name}</span>
-                        {msg.from_class && (
-                          <Badge variant="secondary" className="bg-slate-100 text-slate-600 font-medium text-[10px] shrink-0">{msg.from_class}</Badge>
+            {telegramFeed.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-sm">
+                <MessageCircle className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                Нет сообщений. Отправьте что-нибудь боту в Telegram.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {telegramFeed.slice(0, 6).map(msg => {
+                  const badge = telegramTypeBadge[msg.type] || telegramTypeBadge.general
+                  return (
+                    <div key={msg.id} className="px-4 py-3 hover:bg-slate-50/60 transition-colors">
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-semibold text-slate-900 truncate">{msg.from_name}</span>
+                        </div>
+                        <FormattedDate 
+                          date={msg.sent_at} 
+                          type="time" 
+                          className="text-[10px] text-slate-400 font-medium shrink-0" 
+                        />
+                      </div>
+                      <p className="text-xs text-slate-600 leading-snug mb-2 line-clamp-2">«{msg.message}»</p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-medium ${badge.className}`}>
+                          {badge.label}
+                        </Badge>
+                        {msg.confidence > 0 && (
+                          <span className="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-medium">
+                            {msg.confidence}%
+                          </span>
+                        )}
+                        {msg.processed ? (
+                          <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 ml-auto">
+                            <CheckCircle2 className="h-3 w-3" /> Обработано
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-amber-600 font-medium flex items-center gap-1 ml-auto">
+                            <Clock className="h-3 w-3" /> Ожидает
+                          </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-slate-400 font-medium shrink-0">
-                        {new Date(msg.sent_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
                     </div>
-                    <p className="text-xs text-slate-600 leading-snug mb-2 line-clamp-2">«{msg.message}»</p>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-medium ${badge.className}`}>
-                        {badge.label}
-                      </Badge>
-                      {msg.processed ? (
-                        <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" /> Обработано AI
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-amber-600 font-medium flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> Ожидает
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* AI Events Stream */}
+        {/* AI Activity — Real Processed Data */}
         <Card className="lg:col-span-1">
           <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
             <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-indigo-500" />
-              Поток событий AI
+              <BrainCircuit className="h-4 w-4 text-indigo-500" />
+              Что AI обработал
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4">
-            <div className="space-y-4">
-              {mockAIEvents.map((event, index) => (
-                <div key={event.id} className="flex gap-3 relative">
-                  {index !== mockAIEvents.length - 1 && (
-                    <div className="absolute left-[11px] top-6 bottom-[-16px] w-[2px] bg-slate-100"></div>
-                  )}
-                  <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-500 ring-4 ring-white">
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="flex-1 space-y-1 pb-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium leading-none text-slate-900">
-                        {eventTypeMap[event.type] || event.type}
+          <CardContent className="p-0">
+            {activity.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-sm">
+                <BrainCircuit className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                Нет обработанных сообщений. Нажмите &quot;Обработать сообщения&quot;.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {activity.slice(0, 8).map(item => (
+                  <div key={item.id} className="px-4 py-3 flex items-start gap-3 hover:bg-slate-50/60 transition-colors">
+                    <span className="text-base leading-none shrink-0 mt-0.5">
+                      {activityIcon[item.linked_entity_type] || activityIcon[item.parsed_type] || '💬'}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-800 font-medium leading-snug truncate">
+                        {item.sender_name}: «{item.message_text.slice(0, 50)}{item.message_text.length > 50 ? '...' : ''}»
                       </p>
-                      <span className="text-xs text-slate-500">{timeAgo(event.created_at)}</span>
-                    </div>
-                    <p className="text-xs text-slate-600">{event.description}</p>
-                    {event.confidence && (
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[10px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
-                          {event.confidence}% уверенность
-                        </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-medium ${(telegramTypeBadge[item.parsed_type] || telegramTypeBadge.general).className}`}>
+                          {(telegramTypeBadge[item.parsed_type] || telegramTypeBadge.general).label}
+                        </Badge>
+                        {item.linked_entity_type && (
+                          <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-0.5">
+                            <CheckCircle2 className="h-2.5 w-2.5" /> Создано
+                          </span>
+                        )}
+                        {item.confidence > 0 && (
+                          <span className="text-[10px] text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">
+                            {item.confidence}%
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-medium shrink-0 mt-0.5 flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {item.processed_at ? <FormattedDate date={item.processed_at} type="time" /> : '—'}
+                    </span>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

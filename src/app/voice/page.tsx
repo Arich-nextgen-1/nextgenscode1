@@ -17,6 +17,7 @@ import {
   ChevronRight, AlertTriangle, Info, TrendingDown, RotateCcw,
   MessageCircle, ListChecks, ArrowRight, Bell
 } from "lucide-react"
+import { FormattedDate } from "@/components/ui/formatted-date"
 
 const QUICK_PROMPTS = [
   "Покажи риски по школе",
@@ -187,9 +188,12 @@ export default function AIZavuchPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block mr-2 animate-pulse" />
             Активен
           </Badge>
-          <span className="text-xs text-slate-400 font-medium">
-            {new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}
-          </span>
+          <FormattedDate 
+            date={new Date()} 
+            type="date" 
+            options={{ day: "numeric", month: "long" }} 
+            className="text-xs text-slate-400 font-medium" 
+          />
         </div>
       </div>
 
@@ -340,12 +344,12 @@ export default function AIZavuchPage() {
                     <ArrowRight className="h-3 w-3 text-slate-400" />
                     {t.assignee_name}
                   </p>
-                  {t.deadline && (
-                    <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
-                      <Clock className="h-3 w-3" />
-                      До {new Date(t.deadline).toLocaleDateString('ru-RU', { day: '2-digit', month: 'long' })}
-                    </p>
-                  )}
+                    {t.deadline && (
+                      <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" />
+                        До <FormattedDate date={t.deadline} type="date" />
+                      </p>
+                    )}
                 </div>
               ))}
             </CardContent>

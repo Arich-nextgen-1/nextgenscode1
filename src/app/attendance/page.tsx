@@ -11,6 +11,7 @@ import {
   Search, Filter, Users, UserCheck, UserMinus, FileText,
   CheckCircle2, Clock, Info, MessageCircle, RefreshCw, Send
 } from "lucide-react"
+import { FormattedDate } from "@/components/ui/formatted-date"
 
 export default function AttendancePage() {
   const [records, setRecords] = useState<AttendanceRecord[]>([])
@@ -200,9 +201,12 @@ export default function AttendancePage() {
                       {record.received_at && record.received_from === 'telegram' && (
                         <div className="mt-3 pt-2 border-t border-slate-100 flex items-center gap-1.5">
                           <MessageCircle className="h-3 w-3 text-blue-400 shrink-0" />
-                          <span className="text-[10px] text-slate-500">
-                            Telegram · {new Date(record.received_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          <FormattedDate 
+                            date={record.received_at} 
+                            type="time" 
+                            className="text-[10px] text-slate-500" 
+                          />
+                          <span className="text-[10px] text-slate-500">Telegram</span>
                         </div>
                       )}
                     </CardContent>
@@ -236,7 +240,7 @@ export default function AttendancePage() {
                         Telegram
                       </Badge>
                       <span className="text-xs text-slate-500">
-                        Получено в {new Date(selectedRecord.received_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                        Получено в <FormattedDate date={selectedRecord.received_at} type="time" />
                       </span>
                     </div>
                   )}
