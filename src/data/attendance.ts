@@ -26,6 +26,8 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     status: 'parsed',
     confidence: 98,
     date: new Date().toISOString().split('T')[0],
+    received_from: 'telegram',
+    received_at: new Date(Date.now() - 1860000).toISOString(),
   },
   {
     id: 'a2',
@@ -47,6 +49,8 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     status: 'parsed',
     confidence: 95,
     date: new Date().toISOString().split('T')[0],
+    received_from: 'telegram',
+    received_at: new Date(Date.now() - 1560000).toISOString(),
   },
   {
     id: 'a3',
@@ -69,6 +73,8 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     status: 'parsed',
     confidence: 97,
     date: new Date().toISOString().split('T')[0],
+    received_from: 'telegram',
+    received_at: new Date(Date.now() - 1260000).toISOString(),
   },
   {
     id: 'a4',
@@ -91,6 +97,8 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     status: 'parsed',
     confidence: 99,
     date: new Date().toISOString().split('T')[0],
+    received_from: 'telegram',
+    received_at: new Date(Date.now() - 960000).toISOString(),
   },
   {
     id: 'a5',
@@ -113,6 +121,8 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     status: 'parsed',
     confidence: 94,
     date: new Date().toISOString().split('T')[0],
+    received_from: 'telegram',
+    received_at: new Date(Date.now() - 660000).toISOString(),
   },
   {
     id: 'a6',
@@ -150,6 +160,8 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     status: 'parsed',
     confidence: 100,
     date: new Date().toISOString().split('T')[0],
+    received_from: 'telegram',
+    received_at: new Date(Date.now() - 360000).toISOString(),
   },
   {
     id: 'a8',
@@ -174,6 +186,8 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     status: 'parsed',
     confidence: 96,
     date: new Date().toISOString().split('T')[0],
+    received_from: 'telegram',
+    received_at: new Date(Date.now() - 180000).toISOString(),
   },
 ];
 

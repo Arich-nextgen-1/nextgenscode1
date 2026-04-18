@@ -3,42 +3,57 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { getScheduleForDay, getSubstitutions } from "@/services/schedule"
-import type { LessonSlot, SubstitutionRequest } from "@/types"
-import { CalendarDays, AlertTriangle, ArrowRight, UserX, Clock, MapPin, CheckCircle2 } from "lucide-react"
+import type { LessonSlot, SubstitutionRequest, SubstitutionExplanation } from "@/types"
+import {
+  CalendarDays, AlertTriangle, ArrowRight, UserX, Clock, MapPin,
+  CheckCircle2, BrainCircuit, ChevronDown, ChevronUp
+} from "lucide-react"
+
+// TODO: connect backend — GET /api/schedule/substitution/:id/explanation
+const mockExplanations: Record<string, SubstitutionExplanation> = {
+  sub1: {
+    substitution_id: 'sub1',
+    substitute_name: 'Данияр Бекович',
+    qualification_match: 92,
+    reasons: [
+      { label: 'Совпадает предмет: Окружающий мир', passed: true },
+      { label: 'Свободное окно найдено (3–4 урок)', passed: true },
+      { label: 'Конфликтов в расписании нет', passed: true },
+      { label: 'Кабинет доступен', passed: true },
+      { label: 'Квалификация соответствует требованиям', passed: true },
+    ],
+  },
+}
 
 export default function SchedulePage() {
   const [slots, setSlots] = useState<LessonSlot[]>([])
   const [substitutions, setSubstitutions] = useState<SubstitutionRequest[]>([])
   const [loading, setLoading] = useState(true)
+  const [expandedSubId, setExpandedSubId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchScheduleData = async () => {
       setLoading(true)
-      const daySlots = await getScheduleForDay('monday') // defaulting to monday for mock data demonstration
+      const daySlots = await getScheduleForDay('monday')
       const subs = await getSubstitutions()
-      
-      // Sort slots by period
       const sortedSlots = daySlots.sort((a, b) => a.period - b.period)
-      
       setSlots(sortedSlots)
       setSubstitutions(subs)
+      // Auto-expand first substitution to show explanation
+      if (subs.length > 0) setExpandedSubId(subs[0].id)
       setLoading(false)
     }
     fetchScheduleData()
   }, [])
 
-  // Aggregate absent teachers from substitutions
   const absentTeachers = substitutions.reduce((acc, sub) => {
     if (!acc.find(t => t.id === sub.absent_teacher_id)) {
-      acc.push({
-        id: sub.absent_teacher_id,
-        name: sub.absent_teacher_name,
-        reason: "Болезнь" // mock reason
-      })
+      acc.push({ id: sub.absent_teacher_id, name: sub.absent_teacher_name, reason: "Болезнь" })
     }
     return acc
-  }, [] as {id: string, name: string, reason: string}[])
+  }, [] as { id: string; name: string; reason: string }[])
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -75,17 +90,12 @@ export default function SchedulePage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {loading ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Загрузка расписания...</td>
-                    </tr>
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">Загрузка расписания...</td></tr>
                   ) : slots.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Нет уроков в этот день</td>
-                    </tr>
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">Нет уроков в этот день</td></tr>
                   ) : (
                     slots.map((slot) => {
                       const isSubstituted = slot.status === 'substituted'
-                      
                       return (
                         <tr key={slot.id} className={`hover:bg-slate-50 transition-colors ${isSubstituted ? 'bg-amber-50/30' : ''}`}>
                           <td className="px-4 py-3 text-center font-medium text-slate-500 border-r border-slate-100">{slot.period}</td>
@@ -127,9 +137,10 @@ export default function SchedulePage() {
           </Card>
         </div>
 
-        {/* Right Column: Subs & Absentees */}
-        <div className="w-full xl:w-[380px] shrink-0 space-y-6">
-          {/* Approved Substitutions */}
+        {/* Right Column */}
+        <div className="w-full xl:w-[380px] shrink-0 space-y-5">
+
+          {/* Approved Substitutions with AI Explanation */}
           <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
             <CardHeader className="p-4 border-b border-slate-100 bg-slate-50/50">
               <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
@@ -145,10 +156,12 @@ export default function SchedulePage() {
               ) : (
                 <div className="divide-y divide-slate-100">
                   {substitutions.map(sub => {
-                    const statusText = sub.status === 'applied' ? 'Подтверждено' : 'Ожидает';
+                    const explanation = mockExplanations[sub.id]
+                    const isExpanded = expandedSubId === sub.id
+                    const statusText = sub.status === 'applied' ? 'Подтверждено' : 'Ожидает'
                     
                     return (
-                      <div key={sub.id} className="p-4 hover:bg-slate-50 transition-colors">
+                      <div key={sub.id} className="p-4">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-medium rounded px-1.5 shadow-sm">{sub.affected_slots[0]?.class_name || 'Н/Д'}</Badge>
@@ -168,9 +181,15 @@ export default function SchedulePage() {
                             <span className="text-slate-500 flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-slate-400" /> Заменяет:</span>
                             <span className="font-bold text-emerald-700">{sub.recommended_substitute_name}</span>
                           </div>
+                          {explanation && (
+                            <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-100">
+                              <span className="text-slate-500">Совпадение:</span>
+                              <span className="font-semibold text-slate-700">{explanation.qualification_match}%</span>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium px-1 mb-3">
                           <div className="flex items-center gap-1.5">
                             <MapPin className="h-3.5 w-3.5 text-slate-400" />
                             Каб. {sub.affected_slots[0]?.room || 'Н/Д'}
@@ -180,6 +199,33 @@ export default function SchedulePage() {
                             Болезнь
                           </div>
                         </div>
+
+                        {/* AI Explanation toggle */}
+                        {explanation && (
+                          <div>
+                            <button
+                              onClick={() => setExpandedSubId(isExpanded ? null : sub.id)}
+                              className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors text-xs font-medium text-indigo-700 border border-indigo-100"
+                            >
+                              <span className="flex items-center gap-1.5">
+                                <BrainCircuit className="h-3.5 w-3.5" />
+                                Почему выбрана эта замена
+                              </span>
+                              {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </button>
+                            
+                            {isExpanded && (
+                              <div className="mt-2 px-3 py-3 bg-white border border-indigo-100 rounded-md space-y-2">
+                                {explanation.reasons.map((reason, i) => (
+                                  <div key={i} className="flex items-start gap-2">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                                    <span className="text-xs text-slate-700 leading-snug">{reason.label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   })}

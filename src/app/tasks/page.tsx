@@ -7,13 +7,17 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { getIncidents } from "@/services/incidents"
 import type { Incident } from "@/types"
-import { Search, Filter, AlertTriangle, MapPin, Clock, User, FileText } from "lucide-react"
+import {
+  Search, Filter, AlertTriangle, MapPin, Clock, User, FileText,
+  MessageCircle, CheckCircle2, PlusCircle, RefreshCw
+} from "lucide-react"
 
 export default function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [taskStates, setTaskStates] = useState<Record<string, 'idle' | 'loading' | 'done'>>({})
 
   useEffect(() => {
     const fetchIncidents = async () => {
@@ -27,12 +31,19 @@ export default function IncidentsPage() {
 
   const selectedIncident = incidents.find(i => i.id === selectedId)
 
-  const filteredIncidents = incidents.filter(i => 
-    i.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredIncidents = incidents.filter(i =>
+    i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     i.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     i.room?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     i.assignee_name?.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  // TODO: connect backend here — POST /api/tasks/from-incident
+  const handleCreateTask = async (incidentId: string) => {
+    setTaskStates(s => ({ ...s, [incidentId]: 'loading' }))
+    await new Promise(r => setTimeout(r, 1400))
+    setTaskStates(s => ({ ...s, [incidentId]: 'done' }))
+  }
 
   const getPriorityBadge = (priority: string) => {
     switch(priority) {
@@ -52,6 +63,41 @@ export default function IncidentsPage() {
       case 'done': return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium">Решен</Badge>
       default: return null
     }
+  }
+
+  const getTaskStatusBlock = (incident: Incident) => {
+    const state = taskStates[incident.id] || 'idle'
+    if (state === 'loading') {
+      return (
+        <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-md border border-slate-100">
+          <RefreshCw className="h-3.5 w-3.5 text-slate-400 animate-spin" />
+          <span className="text-xs text-slate-500">Создание задачи...</span>
+        </div>
+      )
+    }
+    if (state === 'done' || incident.task_status === 'auto_created') {
+      return (
+        <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-md border border-emerald-100">
+          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+          <div className="flex-1">
+            <span className="text-xs font-semibold text-emerald-700">Задача создана автоматически</span>
+            {incident.task_assignee && (
+              <p className="text-[10px] text-emerald-600 mt-0.5">Назначена: {incident.task_assignee}</p>
+            )}
+          </div>
+        </div>
+      )
+    }
+    return (
+      <Button
+        size="sm"
+        onClick={() => handleCreateTask(incident.id)}
+        className="w-full h-8 bg-slate-900 text-white hover:bg-slate-800 text-xs"
+      >
+        <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+        Создать задачу
+      </Button>
+    )
   }
 
   return (
@@ -118,11 +164,21 @@ export default function IncidentsPage() {
                             {incident.room}
                           </div>
                         )}
-                        {incident.assignee_name && (
-                          <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5" />
-                            {incident.assignee_name}
+                        {incident.source_channel === 'telegram' && (
+                          <div className="flex items-center gap-1.5 text-blue-500">
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            Telegram
                           </div>
+                        )}
+                        {/* Task status mini-badge in list */}
+                        {(incident.task_status === 'auto_created' || taskStates[incident.id] === 'done') ? (
+                          <span className="flex items-center gap-1 text-emerald-600">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Задача создана
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-amber-600">
+                            <AlertTriangle className="h-3.5 w-3.5" /> Без задачи
+                          </span>
                         )}
                       </div>
                     </CardContent>
@@ -157,7 +213,7 @@ export default function IncidentsPage() {
                   </div>
                 </div>
 
-                <div className="p-5 flex-1 space-y-6">
+                <div className="p-5 flex-1 space-y-5">
                   <div>
                     <h4 className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Описание</h4>
                     <p className="text-sm text-slate-700 leading-relaxed bg-slate-50/50 p-3 rounded-md border border-slate-100">
@@ -182,18 +238,41 @@ export default function IncidentsPage() {
                     </div>
                   </div>
 
+                  {/* Source message block */}
                   <div>
                     <h4 className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-2 flex items-center gap-1.5">
-                      <FileText className="h-3.5 w-3.5" /> Исходное сообщение
+                      <MessageCircle className="h-3.5 w-3.5" /> Источник сообщения
                     </h4>
-                    <div className="text-xs text-slate-600 bg-slate-100 p-3 rounded-md border-l-2 border-slate-300 italic">
-                      "{selectedIncident.source_message}"
+                    <div className="bg-slate-50 rounded-md border border-slate-100 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-medium">
+                          <MessageCircle className="h-3 w-3 mr-1" />
+                          {selectedIncident.source_channel === 'telegram' ? 'Telegram' : 'Ручной ввод'}
+                        </Badge>
+                        {selectedIncident.source_sender && (
+                          <span className="text-xs text-slate-600 font-medium">{selectedIncident.source_sender}</span>
+                        )}
+                        {selectedIncident.source_time && (
+                          <span className="text-xs text-slate-400 ml-auto">
+                            {new Date(selectedIncident.source_time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-600 bg-white p-2.5 rounded border border-slate-100 border-l-2 border-l-blue-300 italic">
+                        «{selectedIncident.source_message}»
+                      </div>
                     </div>
                   </div>
 
-                  <div className="pt-6 mt-6 border-t border-slate-100 flex gap-3">
-                    <Button className="flex-1 bg-slate-900 text-white hover:bg-slate-800 shadow-sm">Взять в работу</Button>
-                    <Button variant="outline" className="flex-1 shadow-sm border-slate-200">Изменить статус</Button>
+                  {/* Task status block */}
+                  <div>
+                    <h4 className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Статус задачи</h4>
+                    {getTaskStatusBlock(selectedIncident)}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex gap-3">
+                    <Button className="flex-1 bg-slate-900 text-white hover:bg-slate-800 shadow-sm text-sm">Взять в работу</Button>
+                    <Button variant="outline" className="flex-1 shadow-sm border-slate-200 text-sm">Изменить статус</Button>
                   </div>
                 </div>
               </div>

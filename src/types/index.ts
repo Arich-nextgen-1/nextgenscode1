@@ -51,6 +51,9 @@ export interface AttendanceRecord {
   status: 'parsed' | 'pending' | 'error';
   confidence: number; // 0-100
   date: string;
+  // Telegram source metadata
+  received_from?: 'telegram' | 'manual';
+  received_at?: string; // ISO timestamp of the original Telegram message
 }
 
 export interface CanteenReport {
@@ -92,6 +95,9 @@ export interface Incident {
   title: string;
   description: string;
   source_message: string;
+  source_channel?: 'telegram' | 'manual' | 'ai_parser';
+  source_sender?: string;
+  source_time?: string; // ISO timestamp
   priority: TaskPriority;
   status: TaskStatus;
   assignee_id?: string;
@@ -100,6 +106,8 @@ export interface Incident {
   detected_at: string;
   resolved_at?: string;
   tasks: string[]; // task IDs
+  task_status?: 'auto_created' | 'pending_confirmation' | 'not_created' | 'assigned';
+  task_assignee?: string;
 }
 
 export interface LessonSlot {
@@ -187,6 +195,42 @@ export interface TelegramMessage {
   sent_at: string;
   type: 'attendance' | 'incident' | 'request' | 'general';
   processed: boolean;
+}
+
+// Dashboard AI action feed item
+export interface DashboardAIAction {
+  id: string;
+  icon: string; // emoji
+  label: string;
+  detail?: string;
+  time: string;
+  status: 'done' | 'pending';
+}
+
+// Substitution explanation for schedule page
+export interface SubstitutionExplanation {
+  substitution_id: string;
+  substitute_name: string;
+  reasons: { label: string; passed: boolean }[];
+  qualification_match: number;
+}
+
+// Parsed voice task (for voice page result display)
+export interface VoiceResultTask {
+  id: string;
+  title: string;
+  assignee_name: string;
+  deadline?: string;
+  priority: TaskPriority;
+  notificationSent: boolean;
+  notificationChannel: 'telegram';
+}
+
+// Voice command parse result
+export interface VoiceParsedResult {
+  raw_command: string;
+  parsed_at: string;
+  tasks: VoiceResultTask[];
 }
 
 export interface DashboardKPI {

@@ -7,13 +7,17 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { getAttendanceOverview } from "@/services/attendance"
 import type { AttendanceRecord } from "@/types"
-import { Search, Filter, Users, UserCheck, UserMinus, FileText, CheckCircle2, Clock, Info } from "lucide-react"
+import {
+  Search, Filter, Users, UserCheck, UserMinus, FileText,
+  CheckCircle2, Clock, Info, MessageCircle, RefreshCw, Send
+} from "lucide-react"
 
 export default function AttendancePage() {
   const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
+  const [canteenState, setCanteenState] = useState<'idle' | 'loading' | 'done'>('idle')
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -25,8 +29,8 @@ export default function AttendancePage() {
     fetchAttendance()
   }, [])
 
-  const selectedRecord = useMemo(() => 
-    records.find(r => r.id === selectedClassId), 
+  const selectedRecord = useMemo(() =>
+    records.find(r => r.id === selectedClassId),
   [records, selectedClassId])
 
   const summary = useMemo(() => {
@@ -39,17 +43,50 @@ export default function AttendancePage() {
     }, { total: 0, present: 0, absent: 0, received: 0 })
   }, [records])
 
-  const filteredRecords = records.filter(r => 
-    r.class_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredRecords = records.filter(r =>
+    r.class_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     r.teacher_name.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  // TODO: connect backend here — replace with POST /api/attendance/canteen-report
+  const handleCanteenReport = async () => {
+    setCanteenState('loading')
+    await new Promise(r => setTimeout(r, 1500))
+    setCanteenState('done')
+    setTimeout(() => setCanteenState('idle'), 4000)
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Посещаемость</h1>
-        <p className="text-sm text-slate-500 mt-1">Данные за сегодня по всем классам</p>
+      <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Посещаемость</h1>
+          <p className="text-sm text-slate-500 mt-1">Данные за сегодня по всем классам</p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Telegram source badge */}
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 py-1 px-3 font-medium">
+            <MessageCircle className="h-3 w-3 mr-1.5" />
+            Telegram: {loading ? '...' : `${summary.received}/${records.length}`}
+          </Badge>
+          {/* Canteen report CTA */}
+          <Button
+            onClick={handleCanteenReport}
+            disabled={canteenState !== 'idle'}
+            size="sm"
+            className="bg-slate-900 text-white hover:bg-slate-800 shadow-sm h-9"
+          >
+            {canteenState === 'loading' ? (
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            ) : canteenState === 'done' ? (
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-emerald-400" />
+            ) : (
+              <Send className="h-3.5 w-3.5 mr-1.5" />
+            )}
+            {canteenState === 'done' ? 'Сводка отправлена' : 'Сводка для столовой'}
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -159,6 +196,15 @@ export default function AttendancePage() {
                           <p className="text-[10px] text-slate-400 mt-1">Всего: {record.total_students}</p>
                         </div>
                       </div>
+                      {/* Telegram source + timestamp */}
+                      {record.received_at && record.received_from === 'telegram' && (
+                        <div className="mt-3 pt-2 border-t border-slate-100 flex items-center gap-1.5">
+                          <MessageCircle className="h-3 w-3 text-blue-400 shrink-0" />
+                          <span className="text-[10px] text-slate-500">
+                            Telegram · {new Date(record.received_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )
@@ -181,6 +227,26 @@ export default function AttendancePage() {
                 <div className="bg-slate-50 border-b border-slate-100 p-5">
                   <h3 className="text-lg font-bold text-slate-900">Класс {selectedRecord.class_name}</h3>
                   <p className="text-sm text-slate-500 mt-1">{selectedRecord.teacher_name}</p>
+                  
+                  {/* Telegram source detail */}
+                  {selectedRecord.received_from === 'telegram' && selectedRecord.received_at && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs font-medium">
+                        <MessageCircle className="h-3 w-3 mr-1" />
+                        Telegram
+                      </Badge>
+                      <span className="text-xs text-slate-500">
+                        Получено в {new Date(selectedRecord.received_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {selectedRecord.status === 'pending' && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                        <Clock className="h-3 w-3 mr-1" /> Ожидается отчёт
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="p-5 border-b border-slate-100 grid grid-cols-3 gap-4 text-center">
@@ -197,6 +263,16 @@ export default function AttendancePage() {
                     <p className="text-lg font-semibold text-red-600">{selectedRecord.absent}</p>
                   </div>
                 </div>
+
+                {/* Raw message from Telegram */}
+                {selectedRecord.raw_message && (
+                  <div className="px-5 pt-4 pb-2">
+                    <h4 className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Исходное сообщение</h4>
+                    <div className="text-xs text-slate-600 bg-slate-100 p-3 rounded-md border-l-2 border-blue-300 italic">
+                      «{selectedRecord.raw_message}»
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex-1 p-5 bg-white">
                   <h4 className="text-sm font-semibold text-slate-900 mb-4">Список отсутствующих</h4>
@@ -218,6 +294,23 @@ export default function AttendancePage() {
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* Action: include in canteen summary */}
+                <div className="p-4 border-t border-slate-100 bg-slate-50/40">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    onClick={handleCanteenReport}
+                    disabled={canteenState !== 'idle'}
+                  >
+                    {canteenState === 'done' ? (
+                      <><CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-emerald-600" /> Включён в сводку</>
+                    ) : (
+                      <><Send className="h-3.5 w-3.5 mr-1.5" /> Включить в сводку столовой</>
+                    )}
+                  </Button>
                 </div>
               </>
             )}
