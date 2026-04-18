@@ -15,7 +15,6 @@ export default function SettingsPage() {
       case 'openai': return <Bot className="h-6 w-6 text-purple-600" />
       case 'claude': return <Bot className="h-6 w-6 text-orange-600" />
       case 'stt': return <Mic className="h-6 w-6 text-slate-600" />
-      case 'rag': return <Layers className="h-6 w-6 text-indigo-600" />
       case 'calendar': return <Calendar className="h-6 w-6 text-amber-500" />
       case 'push': return <Bell className="h-6 w-6 text-rose-500" />
       default: return <Settings2 className="h-6 w-6" />
@@ -85,13 +84,8 @@ export default function SettingsPage() {
                     <Input type="password" placeholder="sk-..." className="font-mono text-xs" />
                   </div>
                 )}
-                {integration.type === 'rag' && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-700">Векторное хранилище</label>
-                    <Input value="Supabase pgvector" readOnly className="bg-slate-50 text-sm" />
-                  </div>
-                )}
-                {!['supabase', 'telegram', 'openai', 'rag'].includes(integration.type) && (
+
+                {!['supabase', 'telegram', 'openai'].includes(integration.type) && (
                   <div className="p-4 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center">
                     <p className="text-sm text-slate-500 text-center">Требуется настройка в переменных окружения</p>
                   </div>

@@ -13,7 +13,6 @@ const eventTypeMap: Record<string, string> = {
   substitution_suggested: 'Предложена замена',
   task_created: 'Создана задача',
   voice_parsed: 'Голос обработан',
-  compliance_checked: 'Проверка соответствия',
 };
 
 const priorityMap: Record<string, string> = {
@@ -242,19 +241,7 @@ export default function DashboardPage() {
                 <Badge variant="success" className="bg-emerald-100 text-emerald-800">Онлайн</Badge>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                    <FileText className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">RAG Соответствие</p>
-                    <p className="text-xs text-slate-500">3 документа проиндексировано</p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="text-indigo-700 bg-indigo-50 border-indigo-200">Готово</Badge>
               </div>
-            </div>
             
             <div className="mt-6">
               <Button className="w-full bg-slate-900 text-white hover:bg-slate-800">

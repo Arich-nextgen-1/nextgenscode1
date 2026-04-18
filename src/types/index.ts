@@ -158,50 +158,13 @@ export interface ParsedTask {
   confidence: number;
 }
 
-export interface RegulatoryDocument {
-  id: string;
-  order_number: string;
-  title: string;
-  description: string;
-  uploaded_at: string;
-  indexed_at?: string;
-  status: 'uploaded' | 'indexing' | 'indexed' | 'error';
-  file_url?: string;
-  chunk_count?: number;
-  category: 'federal' | 'regional' | 'school';
-}
-
-export interface RAGQuery {
-  id: string;
-  question: string;
-  answer?: string;
-  documents_used: string[];
-  created_at: string;
-  status: 'processing' | 'done' | 'error';
-  compliance_check?: ComplianceResult;
-}
-
-export interface ComplianceResult {
-  is_compliant: boolean;
-  risk_level: 'none' | 'low' | 'medium' | 'high';
-  checklist: ChecklistItem[];
-  notes: string;
-}
-
-export interface ChecklistItem {
-  item: string;
-  status: 'done' | 'pending' | 'failed';
-}
-
 export type NotificationType =
   | 'attendance_parsed'
   | 'task_assigned'
   | 'substitution_created'
   | 'incident_detected'
   | 'canteen_report_sent'
-  | 'compliance_warning'
   | 'voice_task_created'
-  | 'rag_query_done'
   | 'system';
 
 export interface Notification {
@@ -240,7 +203,7 @@ export interface DashboardKPI {
 
 export interface AIEvent {
   id: string;
-  type: 'task_created' | 'substitution_suggested' | 'attendance_parsed' | 'compliance_checked' | 'voice_parsed';
+  type: 'task_created' | 'substitution_suggested' | 'attendance_parsed' | 'voice_parsed';
   description: string;
   confidence?: number;
   created_at: string;
@@ -249,8 +212,36 @@ export interface AIEvent {
 export interface IntegrationConfig {
   id: string;
   name: string;
-  type: 'supabase' | 'telegram' | 'openai' | 'claude' | 'stt' | 'rag' | 'calendar' | 'push';
+  type: 'supabase' | 'telegram' | 'openai' | 'claude' | 'stt' | 'calendar' | 'push';
   status: 'connected' | 'disconnected' | 'error' | 'configuring';
   last_synced?: string;
   config?: Record<string, string>;
+}
+
+// ============================================================
+// AI Zavuch Command Center types
+// ============================================================
+
+export type AIInsightSeverity = 'info' | 'warning' | 'critical';
+export type AIActionStatus = 'idle' | 'loading' | 'success' | 'error';
+
+export interface AIInsight {
+  id: string;
+  icon: string; // emoji icon
+  text: string;
+  severity: AIInsightSeverity;
+  created_at: string;
+}
+
+export interface AIAction {
+  id: string;
+  label: string;
+  description: string;
+}
+
+export interface AIActivity {
+  id: string;
+  text: string;
+  icon: string; // emoji icon
+  time: string;
 }

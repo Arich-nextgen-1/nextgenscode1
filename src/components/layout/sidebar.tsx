@@ -22,7 +22,6 @@ const navigation = [
   { name: "Голосовые команды", href: "/voice", icon: Mic },
   { name: "Расписание и замены", href: "/schedule", icon: CalendarDays },
   { name: "Сотрудники", href: "/staff", icon: Users },
-  { name: "Приказы", href: "/regulations", icon: FileText },
 ]
 
 export function Sidebar() {

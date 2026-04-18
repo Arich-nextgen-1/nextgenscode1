@@ -1,4 +1,4 @@
-import type { Notification, AIEvent, DashboardKPI, RegulatoryDocument, RAGQuery, IntegrationConfig, VoiceTranscription } from '@/types';
+import type { Notification, AIEvent, DashboardKPI, IntegrationConfig, VoiceTranscription } from '@/types';
 
 export * from './staff';
 export * from './attendance';
@@ -12,7 +12,7 @@ export const mockKPI: DashboardKPI = {
   active_incidents: 2,
   tasks_in_progress: 3,
   substitutions_today: 1,
-  unread_notifications: 7,
+  unread_notifications: 6,
   canteen_portions: 160,
   attendance_rate: 93.6,
 };
@@ -59,16 +59,6 @@ export const mockNotifications: Notification[] = [
     action_url: '/voice',
   },
   {
-    id: 'n5',
-    type: 'compliance_warning',
-    title: 'Напоминание: инструктаж по Приказу №76',
-    message: 'Срок проведения ежеквартального инструктажа истекает через 3 дня.',
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    read: true,
-    priority: 'warning',
-    action_url: '/regulations',
-  },
-  {
     id: 'n6',
     type: 'canteen_report_sent',
     title: 'Отчет для столовой готов',
@@ -95,84 +85,6 @@ export const mockAIEvents: AIEvent[] = [
   { id: 'ae2', type: 'substitution_suggested', description: 'Подбор замены для Ботагоз Дауреновой → Данияр Бекович (92%)', confidence: 92, created_at: new Date(Date.now() - 600000).toISOString() },
   { id: 'ae3', type: 'task_created', description: 'Создана задача из сообщения: "Починить парту в кабинете 12"', confidence: 94, created_at: new Date(Date.now() - 900000).toISOString() },
   { id: 'ae4', type: 'voice_parsed', description: '2 задачи извлечены из голосового поручения директора', confidence: 96, created_at: new Date(Date.now() - 3600000).toISOString() },
-  { id: 'ae5', type: 'compliance_checked', description: 'Проверка соответствия Приказу №76 — предупреждение: инструктаж просрочен', confidence: 99, created_at: new Date(Date.now() - 86400000).toISOString() },
-];
-
-export const mockRegulations: RegulatoryDocument[] = [
-  {
-    id: 'reg1',
-    order_number: '76',
-    title: 'О пожарной безопасности в образовательных учреждениях',
-    description: 'Требования по проведению инструктажей, оснащению средствами пожаротушения и плановым проверкам',
-    uploaded_at: new Date(Date.now() - 2592000000).toISOString(),
-    indexed_at: new Date(Date.now() - 2505600000).toISOString(),
-    status: 'indexed',
-    chunk_count: 48,
-    category: 'regional',
-  },
-  {
-    id: 'reg2',
-    order_number: '110',
-    title: 'О порядке учёта посещаемости обучающихся',
-    description: 'Стандарты ведения журналов, формы отчётности, сроки сдачи данных в РОНО',
-    uploaded_at: new Date(Date.now() - 1728000000).toISOString(),
-    indexed_at: new Date(Date.now() - 1641600000).toISOString(),
-    status: 'indexed',
-    chunk_count: 32,
-    category: 'federal',
-  },
-  {
-    id: 'reg3',
-    order_number: '130',
-    title: 'О педагогической нагрузке и замещении уроков',
-    description: 'Нормативы замены уроков, квалификационные требования к заменяющим, документирование',
-    uploaded_at: new Date(Date.now() - 864000000).toISOString(),
-    indexed_at: new Date(Date.now() - 777600000).toISOString(),
-    status: 'indexed',
-    chunk_count: 41,
-    category: 'federal',
-  },
-];
-
-export const mockRAGQueries: RAGQuery[] = [
-  {
-    id: 'rq1',
-    question: 'Как часто нужно проводить инструктаж по пожарной безопасности?',
-    answer: 'Согласно Приказу №76, инструктаж по пожарной безопасности проводится **ежеквартально** (4 раза в год). Первичный инструктаж — при приёме на работу. Внеплановый — при изменении нормативных требований или после пожарных инцидентов. Все инструктажи фиксируются в журнале под подпись.',
-    documents_used: ['reg1'],
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    status: 'done',
-    compliance_check: {
-      is_compliant: false,
-      risk_level: 'high',
-      checklist: [
-        { item: 'Проведён первичный инструктаж', status: 'done' },
-        { item: 'Ежеквартальный инструктаж Q1', status: 'done' },
-        { item: 'Ежеквартальный инструктаж Q2', status: 'failed' },
-        { item: 'Журнал инструктажей заполнен', status: 'pending' },
-        { item: 'Огнетушители проверены', status: 'done' },
-      ],
-      notes: 'Пропущен инструктаж за Q2. Рекомендуется провести в течение 3 дней.',
-    },
-  },
-  {
-    id: 'rq2',
-    question: 'Кто может замещать уроки при отсутствии учителя?',
-    answer: 'По Приказу №130, замещать уроки может педагог с соответствующей квалификацией по предмету или смежной специальности. Замещение оформляется приказом директора в день отсутствия. Оплата — по тарифной ставке замещающего учителя.',
-    documents_used: ['reg3'],
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    status: 'done',
-    compliance_check: {
-      is_compliant: true,
-      risk_level: 'none',
-      checklist: [
-        { item: 'Квалификация замещающего соответствует предмету', status: 'done' },
-        { item: 'Приказ о замещении оформлен', status: 'pending' },
-        { item: 'Замещение занесено в журнал', status: 'pending' },
-      ],
-      notes: 'Данияр Бекович соответствует требованиям. Необходимо оформить приказ.',
-    },
-  },
 ];
 
 export const mockVoiceTranscription: VoiceTranscription = {
@@ -210,7 +122,6 @@ export const mockIntegrations: IntegrationConfig[] = [
   { id: 'int3', name: 'OpenAI GPT-4o', type: 'openai', status: 'disconnected', config: { api_key: '', model: 'gpt-4o' } },
   { id: 'int4', name: 'Claude 3.5 Sonnet', type: 'claude', status: 'disconnected', config: { api_key: '' } },
   { id: 'int5', name: 'Speech-to-Text (Whisper)', type: 'stt', status: 'disconnected', config: { provider: 'openai' } },
-  { id: 'int6', name: 'RAG / Vector Search', type: 'rag', status: 'disconnected', config: { vector_store: 'pgvector' } },
   { id: 'int7', name: 'Calendar Sync', type: 'calendar', status: 'disconnected', config: { provider: 'google' } },
   { id: 'int8', name: 'Push Notifications', type: 'push', status: 'disconnected', config: { provider: 'firebase' } },
 ];
